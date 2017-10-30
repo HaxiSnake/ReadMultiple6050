@@ -1,0 +1,5 @@
+*.pyc
+__pycache__/*
+/Data/*
+!/Data/data_sample.txt
+/.vscode
