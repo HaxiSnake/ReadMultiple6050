@@ -1,3 +1,4 @@
+# -*- coding:utf-8 -*-  
 import time
 import logging
 import threading
@@ -6,15 +7,17 @@ import platform
 from UI import UITool
 from SerialHelper import Read6050
 from IOProcess.DataSave import *
-
+from IOProcess.DataSave import RecordThreadToOneFile
 import tkinter as tk 
 from tkinter import ttk
+import gc
 
 logging.basicConfig(level=logging.DEBUG,\
                     format='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',\
                     datefmt='%a, %d %b %Y %H:%M:%S')
 class MainSerialToolUI(UITool.SerialToolUI):
     def __init__(self,master = None):
+        self.master=master
         super(MainSerialToolUI,self).__init__()
         self.ser = None
         self.port_list = list()
@@ -22,6 +25,17 @@ class MainSerialToolUI(UITool.SerialToolUI):
         self.thread_read  = list()
         self.ser_all_alive = False
         self.thread_record = None
+        self.serdic={}
+    def _get_sers(self):
+        self.port_list = list()
+        #得到端口号
+        for index,item in enumerate(self.frm_up_setport_combobox):
+            ser_num = index
+            name = item.get()
+            if name == '-1' :
+                self.port_list.append("NONE")
+            else:
+                self.port_list.append("COM"+name)
     def Open(self):
         '''
         打开关闭串口
@@ -41,8 +55,8 @@ class MainSerialToolUI(UITool.SerialToolUI):
                 #print (self.port_list)
                 #开启串口
                 success_com =""
-                self.ser_list = list()
                 success_count = 0
+                self.ser_list=list()
                 for index,port in enumerate(self.port_list):
                     ser_num = index
                     if port == "NONE":
@@ -54,7 +68,7 @@ class MainSerialToolUI(UITool.SerialToolUI):
                 for index,ser in enumerate(self.ser_list):
                     ser_num = index
                     ser.open()
-                    ser.setDaemon(True)
+                    # ser.setDaemon(True)
                     if ser.alive:
                         success_com = success_com + ser.port[3:] + " " 
                         success_count = success_count + 1 
@@ -93,17 +107,50 @@ class MainSerialToolUI(UITool.SerialToolUI):
         '''记录和停止记录'''
         if self.frm_down_btn1["text"] == "Record":
             #print(self.frm_up_btn["text"],self.ser_all_alive)
-            if self.frm_up_btn["text"] == "Close" and self.ser_all_alive:#串口打开状态
-                self.thread_record = RecordThread(self.ser_list)
+            if self.frm_up_btn["text"] == "Close" and self.ser_all_alive and self.frm_down_btn2["text"]=="One Time":#串口打开状态
+                # self.thread_record = RecordThread(self.ser_list)
+                name="default"
+                if(len(self.frm_up_entry.get())):
+                    name=self.frm_up_entry.get()
+                self.thread_record=RecordThreadToOneFile(self.ser_list,name)
                 self.thread_record.start()
+
                 self.frm_status_label["text"] = "Recording Data..."
                 self.frm_down_btn1["text"] = "Stop"
                 self.frm_down_btn1["bg"] = "#F08080"
         elif self.frm_down_btn1["text"] == "Stop":
             self.thread_record.stop()
+            del self.thread_record
+            # gc.collect()
             self.frm_status_label["text"] = "Record Stopped"
             self.frm_down_btn1["text"] = "Record"
             self.frm_down_btn1["bg"] = "#008B8B"
+    def RecordOnce(self):
+        '''记录一次 按时间'''
+        if self.frm_down_btn2["text"]=="One Time":
+            if self.frm_up_btn["text"] == "Close" and self.ser_all_alive and self.frm_down_btn1["text"]=="Record":
+                self.thread_record=RecordThreadToOneFile(self.ser_list,self.outputname)
+                self.thread_record.start()
+
+                self.frm_status_label["text"] = "One time Recording ..."
+                self.frm_down_btn2["text"] = "Recording"
+                self.frm_down_btn2["bg"] = "#F08080"
+                delay=-1
+                try:
+                    delay=int(self.frm_down_entry.get())
+                except:
+                    delay=5000
+                if(delay<0):
+                    delay=5000
+                self.master.after(delay,self.ChangeBtn2)
+    def ChangeBtn2(self):
+        self.thread_record.stop()
+        del self.thread_record
+        self.frm_down_btn2["text"] = "One Time"
+        self.frm_status_label["text"] = "One Time Record Stopped"
+        self.frm_down_btn2["text"] = "One Time"
+        self.frm_down_btn2["bg"] = "#008B8B"
+    
 if __name__ == '__main__':
     '''
     main loop

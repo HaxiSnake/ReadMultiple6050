@@ -1,5 +1,5 @@
 {
     // Path to Python, you can use a custom version of Python by modifying this setting to include the full path.
-"python.pythonPath": "C:\\Python36-32",
+"python.pythonPath": "C:\\Python36\\python.exe",
 "python.linting.pylintEnabled": false
 }

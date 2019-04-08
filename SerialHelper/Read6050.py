@@ -1,3 +1,4 @@
+# -*- coding:utf-8 -*-  
 import serial
 import sys
 import time
@@ -48,8 +49,8 @@ class Read6050(threading.Thread):
         结束，关闭串口
         '''
         self.alive = False
-        if self.l_serial.isOpen():
-            self.l_serial.close()
+        # if self.l_serial.isOpen():
+        #     self.l_serial.close()
     def run(self):
         '''
         循环读取解析数据
@@ -116,6 +117,7 @@ class Read6050(threading.Thread):
         HL[1]=buff[0]
         SI=HL[0]<<8|HL[1]
         return SI
+
 # def signal_handler(signum,frame):
 #     global MAIN_STOP_FLAG
 #     MAIN_STOP_FLAG = True
